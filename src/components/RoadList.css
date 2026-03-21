@@ -1,0 +1,42 @@
+.road-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  border-top: 1px solid #30363d;
+}
+
+.road-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+
+.road-list-count {
+  color: #ff6b35;
+}
+
+.road-list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.road-list-body::-webkit-scrollbar {
+  width: 5px;
+}
+.road-list-body::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+.road-list-body::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}

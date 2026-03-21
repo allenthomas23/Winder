@@ -1,121 +1,109 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import Map from './components/Map';
+import FilterPanel from './components/FilterPanel';
+import RoadList from './components/RoadList';
+import { fetchRoads } from './utils/overpass';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const DEFAULT_FILTERS = {
+  minCurviness: 4,
+  radiusMiles: 20,
+  maxSpeedLimit: 999,
+  roadTypes: ['secondary', 'tertiary', 'unclassified', 'residential'],
+  minLengthMiles: 0.5,
+};
+
+export default function App() {
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [roads, setRoads] = useState([]);
+  const [filteredRoads, setFilteredRoads] = useState([]);
+  const [selectedRoad, setSelectedRoad] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [userCenter, setUserCenter] = useState(null);
+  const [resultCount, setResultCount] = useState(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCenter([pos.coords.latitude, pos.coords.longitude]),
+        () => setUserCenter([36.1627, -86.7816])
+      );
+    } else {
+      setUserCenter([36.1627, -86.7816]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const filtered = roads.filter(
+      (r) =>
+        r.curviness >= filters.minCurviness &&
+        r.length >= filters.minLengthMiles &&
+        (filters.maxSpeedLimit === 999 ||
+          r.speedLimit === null ||
+          r.speedLimit <= filters.maxSpeedLimit) &&
+        filters.roadTypes.includes(r.highway)
+    );
+    const sorted = [...filtered].sort((a, b) => b.curviness - a.curviness);
+    setFilteredRoads(sorted);
+    setResultCount(sorted.length);
+  }, [roads, filters]);
+
+  async function handleSearch() {
+    if (!userCenter) return;
+    setLoading(true);
+    setError(null);
+    setSelectedRoad(null);
+    setRoads([]);
+    try {
+      const results = await fetchRoads({
+        lat: userCenter[0],
+        lon: userCenter[1],
+        radiusMiles: filters.radiusMiles,
+        roadTypes: filters.roadTypes,
+      });
+      setRoads(results);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch roads. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <header className="app-header">
+        <div className="app-logo">
+          <span className="logo-icon">〰️</span>
+          <span className="logo-name">Winder</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <span className="app-tagline">Find your next drive</span>
+        {error && <span className="error-banner">{error}</span>}
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <div className="app-body">
+        <div className="sidebar">
+          <FilterPanel
+            filters={filters}
+            onChange={setFilters}
+            onSearch={handleSearch}
+            loading={loading}
+            resultCount={resultCount}
+          />
+          <RoadList
+            roads={filteredRoads}
+            selectedId={selectedRoad?.id}
+            onSelect={setSelectedRoad}
+          />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <Map
+          roads={filteredRoads}
+          selectedRoad={selectedRoad}
+          onRoadClick={setSelectedRoad}
+          center={userCenter}
+        />
+      </div>
+    </div>
+  );
 }
-
-export default App

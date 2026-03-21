@@ -1,0 +1,37 @@
+.map-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+.road-popup .leaflet-popup-content-wrapper {
+  background: #161b22;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.road-popup .leaflet-popup-tip {
+  background: #161b22;
+}
+
+.road-popup strong {
+  font-size: 0.95rem;
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #e6edf3;
+}
+
+.popup-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  color: #8b949e;
+}

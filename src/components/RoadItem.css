@@ -1,0 +1,76 @@
+.road-item {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+  margin-bottom: 0.5rem;
+}
+
+.road-item:hover {
+  border-color: #ff6b35;
+  transform: translateX(2px);
+}
+
+.road-item.selected {
+  border-color: #ff6b35;
+  background: #1c1008;
+}
+
+.road-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.road-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e6edf3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.road-score {
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.road-bar-track {
+  height: 4px;
+  background: #21262d;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.road-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.road-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.road-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 0 0.35rem;
+}
+
+.road-detail {
+  font-size: 0.72rem;
+  color: #8b949e;
+}
