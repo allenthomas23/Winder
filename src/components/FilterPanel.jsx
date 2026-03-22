@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import LocationSearch from './LocationSearch';
 import './FilterPanel.css';
 
 const ROAD_TYPES = ['primary', 'secondary', 'tertiary', 'unclassified', 'residential'];
@@ -68,7 +67,7 @@ function SliderField({
   );
 }
 
-export default function FilterPanel({ filters, onChange, onSearch, loading, routeCount, status, onLocationSelect }) {
+export default function FilterPanel({ filters, onChange, onSearch, loading, routeCount, status }) {
   const [collapsed, setCollapsed] = useState(false);
 
   function update(key, value) {
@@ -94,7 +93,6 @@ export default function FilterPanel({ filters, onChange, onSearch, loading, rout
 
       {!collapsed && (
         <div className="panel-body">
-          <LocationSearch onSelect={onLocationSelect} />
           <SliderField
             label="Route length (loop)"
             value={filters.targetDistMiles}

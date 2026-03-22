@@ -3,6 +3,7 @@ import Map from './components/Map';
 import FilterPanel from './components/FilterPanel';
 import RouteList from './components/RouteList';
 import FavoritesList from './components/FavoritesList';
+import LocationSearch from './components/LocationSearch';
 import { fetchRoadGraph } from './utils/overpass';
 import { buildGraph, findNearestNode } from './utils/graph';
 import { findLoops } from './utils/routing';
@@ -128,6 +129,9 @@ export default function App() {
           <span className="logo-name">Winder</span>
         </div>
         <span className="app-tagline">Find your next drive</span>
+        <div className="app-header-search">
+          <LocationSearch onSelect={handleLocationSelect} />
+        </div>
         {error && <span className="error-banner">{error}</span>}
       </header>
 
@@ -140,7 +144,6 @@ export default function App() {
             loading={loading}
             routeCount={routeCount}
             status={status}
-            onLocationSelect={handleLocationSelect}
           />
           <div className="sidebar-lists">
             <RouteList

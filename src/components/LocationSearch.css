@@ -1,11 +1,13 @@
 .loc-search {
   position: relative;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
+  width: 100%;
 }
 
 .loc-input-wrap {
   display: flex;
   align-items: center;
+  width: 100%;
   background: #0d1117;
   border: 1px solid #30363d;
   border-radius: 7px;
