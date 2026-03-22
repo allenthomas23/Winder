@@ -28,7 +28,7 @@ function dijkstra(graph, startId, maxDist, excludeEdges=null) {
     const node=graph.get(u); if(!node) continue;
     for(const e of node.edges){
       if(excludeEdges&&excludeEdges.has(edgeKey(u,e.to))) continue;
-      const nd=du+e.dist;
+      const nd=du+(e.routingCost??e.dist);
       if(nd<(dist.get(e.to)??Infinity)){dist.set(e.to,nd);prev.set(e.to,u);heap.push({id:e.to,d:nd});}
     }
   }
@@ -140,7 +140,7 @@ function scoreRoute(graph, path) {
   }
 
   const coords = [];
-  let totalDist = 0, weightedCurv = 0;
+  let totalDist = 0, weightedCurv = 0, belowLimitDist = 0;
 
   for (let i = 0; i < path.length - 1; i++) {
     const a = path[i], b = path[i + 1];
@@ -154,6 +154,7 @@ function scoreRoute(graph, path) {
 
     totalDist += e.dist;
     weightedCurv += e.curviness * e.dist;
+    if (e.belowLimit) belowLimitDist += e.dist;
 
     if (e.segCoords) {
       // Use full road geometry (intermediate shape nodes included)
@@ -173,6 +174,7 @@ function scoreRoute(graph, path) {
     coords,
     totalDistance: totalDist,
     avgCurviness: weightedCurv / totalDist,
+    belowLimitFraction: totalDist > 0 ? belowLimitDist / totalDist : 0,
   };
 }
 
@@ -194,6 +196,9 @@ export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 
     if (!route) continue;
     if (route.totalDistance < minDist) continue;
     if (route.avgCurviness < minCurviness) continue;
+    // Reject routes where more than half the mileage is below the speed limit.
+    // This allows slow connector roads but keeps the majority on qualifying roads.
+    if (route.belowLimitFraction > 0.5) continue;
 
     const isDupe = routes.some(
       (r) =>

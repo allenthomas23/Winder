@@ -21,9 +21,10 @@ function haversineMiles(lat1, lon1, lat2, lon2) {
  *   name, highway, speedLimit, segCoords: [[lat,lon],...]}] }>
  */
 export function buildGraph(ways, nodeCoords, { minSpeedLimit = 0 } = {}) {
-  const filteredWays = ways.filter(
-    (way) => minSpeedLimit === 0 || (way.speedLimit != null && way.speedLimit >= minSpeedLimit)
-  );
+  // Include ALL ways — slow roads can still serve as connectors.
+  // Ways that are known to be below the limit get a routing cost penalty so
+  // Dijkstra prefers faster roads but can still route through slow ones.
+  const filteredWays = ways;
 
   // Count how many ways reference each node
   const nodeWayCount = new Map();
@@ -92,10 +93,21 @@ export function buildGraph(ways, nodeCoords, { minSpeedLimit = 0 } = {}) {
       const nB = graph.get(b);
 
       if (nA && nB) {
+        // A road is "below limit" only when the filter is active AND the speed
+        // is known AND it falls short.  Unknown speed limits are allowed through.
+        const belowLimit =
+          minSpeedLimit > 0 &&
+          way.speedLimit != null &&
+          way.speedLimit < minSpeedLimit;
+        // Penalise below-limit edges heavily in routing cost so Dijkstra prefers
+        // qualifying roads, but doesn't dead-end when only slow connectors exist.
+        const routingCost = belowLimit ? dist * 4 : dist;
         const base = {
           wayId: way.id,
           curviness,
           dist,
+          routingCost,
+          belowLimit,
           name: way.name,
           highway: way.highway,
           speedLimit: way.speedLimit,
