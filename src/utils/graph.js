@@ -22,7 +22,7 @@ function haversineMiles(lat1, lon1, lat2, lon2) {
  */
 export function buildGraph(ways, nodeCoords, { minSpeedLimit = 0 } = {}) {
   const filteredWays = ways.filter(
-    (way) => way.speedLimit == null || way.speedLimit >= minSpeedLimit
+    (way) => minSpeedLimit === 0 || (way.speedLimit != null && way.speedLimit >= minSpeedLimit)
   );
 
   // Count how many ways reference each node
@@ -100,8 +100,14 @@ export function buildGraph(ways, nodeCoords, { minSpeedLimit = 0 } = {}) {
           highway: way.highway,
           speedLimit: way.speedLimit,
         };
-        nA.edges.push({ to: b, ...base, segCoords });
-        nB.edges.push({ to: a, ...base, segCoords: [...segCoords].reverse() });
+        if (way.oneway === true) {
+          nA.edges.push({ to: b, ...base, segCoords });
+        } else if (way.oneway === -1) {
+          nB.edges.push({ to: a, ...base, segCoords: [...segCoords].reverse() });
+        } else {
+          nA.edges.push({ to: b, ...base, segCoords });
+          nB.edges.push({ to: a, ...base, segCoords: [...segCoords].reverse() });
+        }
       }
 
       segStartIdx = i;

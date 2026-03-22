@@ -20,8 +20,15 @@ const PIN_ICON = L.divIcon({
 
 function FlyToRoute({ route }) {
   const map = useMap();
+  const previousRouteIdRef = useRef(null);
+
   useEffect(() => {
-    if (!route || !route.coords || route.coords.length === 0) return;
+    const previousRouteId = previousRouteIdRef.current;
+    previousRouteIdRef.current = route?.id ?? null;
+
+    if (!route || !route.coords || route.coords.length === 0 || previousRouteId == null || previousRouteId === route.id) {
+      return;
+    }
     const lats = route.coords.map((c) => c[0]);
     const lons = route.coords.map((c) => c[1]);
     map.fitBounds(
@@ -56,7 +63,7 @@ function FlyTo({ target }) {
   return null;
 }
 
-export default function Map({ routes, selectedRoute, onRouteClick, center, favorites, searchPin, onPinMove, flyTarget }) {
+export default function Map({ routes, selectedRoute, onRouteClick, center, searchPin, onPinMove, flyTarget }) {
   const DEFAULT_CENTER = [39.3592, -84.3099];
 
   const routeIds = new Set(routes.map((r) => r.id));

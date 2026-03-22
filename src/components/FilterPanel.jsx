@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import './FilterPanel.css';
 
-const ROAD_TYPES = ['primary', 'secondary', 'tertiary', 'unclassified', 'residential'];
+const ROAD_TYPES = [
+  { value: 'primary', label: 'Highways' },
+  { value: 'secondary', label: 'Main Roads' },
+  { value: 'tertiary', label: 'Country Roads' },
+  { value: 'unclassified', label: 'Back Roads' },
+  { value: 'residential', label: 'Residential' },
+];
 
 const SPEED_OPTIONS = [
   { label: 'Any speed', value: 0 },
@@ -69,6 +75,7 @@ function SliderField({
 
 export default function FilterPanel({ filters, onChange, onSearch, loading, routeCount, status }) {
   const [collapsed, setCollapsed] = useState(false);
+  const showRadiusWarning = filters.targetDistMiles > filters.radiusMiles * 2.5;
 
   function update(key, value) {
     onChange({ ...filters, [key]: value });
@@ -153,13 +160,13 @@ export default function FilterPanel({ filters, onChange, onSearch, loading, rout
           <label className="filter-label">Road types</label>
           <div className="checkbox-group">
             {ROAD_TYPES.map((type) => (
-              <label key={type} className="checkbox-label">
+              <label key={type.value} className="checkbox-label">
                 <input
                   type="checkbox"
-                  checked={filters.roadTypes.includes(type)}
-                  onChange={() => toggleRoadType(type)}
+                  checked={filters.roadTypes.includes(type.value)}
+                  onChange={() => toggleRoadType(type.value)}
                 />
-                {type}
+                {type.label}
               </label>
             ))}
           </div>
@@ -175,6 +182,10 @@ export default function FilterPanel({ filters, onChange, onSearch, loading, rout
               '〰 Find Loop Courses'
             )}
           </button>
+
+          {showRadiusWarning && (
+            <div className="filter-warning">⚠ Target distance exceeds search area. Consider increasing radius.</div>
+          )}
 
           {routeCount !== null && !loading && (
             <p className="result-count">

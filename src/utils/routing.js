@@ -3,14 +3,6 @@ function seededRng(seed) {
   return () => { s ^= s<<13; s ^= s>>>17; s ^= s<<5; return (s>>>0)/0x100000000; };
 }
 
-function weightedPick(items, weightFn, rng) {
-  const ws = items.map(weightFn), total = ws.reduce((a,b)=>a+b,0);
-  if (total<=0) return items[Math.floor(rng()*items.length)];
-  let r = rng()*total;
-  for (let i=0;i<items.length;i++) { r-=ws[i]; if(r<=0) return items[i]; }
-  return items[items.length-1];
-}
-
 function edgeKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
 
 class MinHeap {
@@ -102,6 +94,8 @@ function buildLoop(graph, startNodeId, targetDist, seed) {
   // Prefer midpoints close to targetDist/2 road distance; pick randomly from top 10
   candidates.sort((a, b) => Math.abs(a.d - targetDist * 0.5) - Math.abs(b.d - targetDist * 0.5));
   const midpointId = candidates[Math.floor(rng() * Math.min(10, candidates.length))].id;
+  const pathADist = fwdDist.get(midpointId);
+  if (!Number.isFinite(pathADist)) return null;
 
   // Path A: startNodeId → midpointId (reconstruct from fwdPrev, then reverse)
   const rawA = reconstructPath(fwdPrev, midpointId, startNodeId);
@@ -115,10 +109,17 @@ function buildLoop(graph, startNodeId, targetDist, seed) {
   }
 
   // Path B: startNodeId → midpointId on entirely different edges
-  const { prev: prevB } = dijkstra(graph, startNodeId, Infinity, pathAEdges);
+  const maxReturnDist = targetDist * 2.0 - pathADist;
+  if (maxReturnDist <= 0) return null;
+  const { dist: distB, prev: prevB } = dijkstra(graph, startNodeId, maxReturnDist, pathAEdges);
   const rawB = reconstructPath(prevB, midpointId, startNodeId);
   if (!rawB) return null;
   const pathB = [...rawB].reverse(); // [startNodeId, ..., midpointId]
+  const pathBDist = distB.get(midpointId);
+  const totalDist = pathADist + pathBDist;
+  if (!Number.isFinite(pathBDist) || totalDist < targetDist * 0.4 || totalDist > targetDist * 2.0) {
+    return null;
+  }
 
   // Loop: pathA forward + pathB reversed (mid→start) with no shared edges
   const fullPath = [...pathA, ...[...pathB].reverse().slice(1)];
@@ -144,7 +145,11 @@ function scoreRoute(graph, path) {
   for (let i = 0; i < path.length - 1; i++) {
     const a = path[i], b = path[i + 1];
     const nodeA = graph.get(a);
-    const e = nodeA?.edges.find((e) => e.to === b);
+    const matchingEdges = nodeA?.edges.filter((e) => e.to === b) ?? [];
+    const e = matchingEdges.reduce(
+      (best, candidate) => (!best || candidate.curviness > best.curviness ? candidate : best),
+      null
+    );
     if (!e) continue;
 
     totalDist += e.dist;
@@ -174,19 +179,12 @@ function scoreRoute(graph, path) {
 export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 5) {
   if (!graph.get(startNodeId)) return [];
 
-  // Check if start is in a useful component; if not, find a better node
+  // If the chosen start node is in a tiny component, stop early so the caller
+  // can prompt the user to move the search pin onto the main road network.
   const probe = dijkstra(graph, startNodeId, targetDist * 3);
-  if (probe.dist.size < 10) {
-    let bestId = startNodeId, bestSize = probe.dist.size, checked = 0;
-    for (const [id] of graph) {
-      if (checked++ > 300) break;
-      const d = dijkstra(graph, id, targetDist * 3);
-      if (d.dist.size > bestSize) { bestSize = d.dist.size; bestId = id; }
-    }
-    if (bestId !== startNodeId) startNodeId = bestId;
-  }
+  if (probe.dist.size < 10) return [];
 
-  // Require routes to be at least 30% of target to avoid cluttering results
+  // Require routes to be at least 15% of target to avoid cluttering results
   // with tiny loops when a longer target was requested
   const minDist = targetDist * 0.15;
 
@@ -195,6 +193,7 @@ export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 
     const route = buildLoop(graph, startNodeId, targetDist, seed);
     if (!route) continue;
     if (route.totalDistance < minDist) continue;
+    if (route.avgCurviness < minCurviness) continue;
 
     const isDupe = routes.some(
       (r) =>
@@ -205,9 +204,11 @@ export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 
   }
 
   // Sort by combined score: curviness + closeness to target distance
-  return routes.sort((a, b) => {
+  return routes
+    .filter((route) => route.avgCurviness >= minCurviness)
+    .sort((a, b) => {
     const scoreA = a.avgCurviness * 2 + Math.max(0, 1 - Math.abs(a.totalDistance - targetDist) / targetDist);
     const scoreB = b.avgCurviness * 2 + Math.max(0, 1 - Math.abs(b.totalDistance - targetDist) / targetDist);
     return scoreB - scoreA;
-  });
+    });
 }

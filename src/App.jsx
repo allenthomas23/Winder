@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Map from './components/Map';
 import FilterPanel from './components/FilterPanel';
 import RouteList from './components/RouteList';
@@ -16,7 +16,7 @@ const MASON_OH = [39.3592, -84.3099];
 
 const DEFAULT_FILTERS = {
   targetDistMiles: 40,
-  minCurviness: 3,
+  minCurviness: 1,
   radiusMiles: 20,
   minSpeedLimit: 0,
   roadTypes: ['primary', 'secondary', 'tertiary', 'unclassified'],
@@ -32,6 +32,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [userCenter, setUserCenter] = useState(null);
   const [routeCount, setRouteCount] = useState(null);
+  const searchAbortRef = useRef(null);
 
   // Search center: starts at GPS location, overridden by geocode search or pin drag
   const [searchCenter, setSearchCenter] = useState(null);
@@ -61,12 +62,17 @@ export default function App() {
     }
   }, []);
 
-  function handleLocationSelect(coords, label) {
+  useEffect(() => () => searchAbortRef.current?.abort(), []);
+
+  function handleLocationSelect(coords) {
     setSearchCenter(coords);
     setFlyTarget(coords);
   }
 
   async function handleSearch() {
+    searchAbortRef.current?.abort();
+    const abortController = new AbortController();
+    searchAbortRef.current = abortController;
     const center = searchCenter || userCenter || MASON_OH;
     setLoading(true);
     setError(null);
@@ -81,13 +87,14 @@ export default function App() {
         lon: center[1],
         radiusMiles: filters.radiusMiles,
         roadTypes: filters.roadTypes,
+        signal: abortController.signal,
       });
 
       setStatus('Building road graph...');
       const graph = buildGraph(ways, nodeCoords, { minSpeedLimit: filters.minSpeedLimit });
 
       if (graph.size === 0) {
-        setError('No roads found in this area. Try increasing the search radius.');
+        setError('No roads found — try increasing the search radius or adding more road types.');
         return;
       }
 
@@ -104,12 +111,22 @@ export default function App() {
 
       setRoutes(found);
       setRouteCount(found.length);
-      if (found.length > 0) setSelectedRoute(found[0]);
+      if (found.length > 0) {
+        setSelectedRoute(found[0]);
+      } else if (filters.minCurviness > 5) {
+        setError('No routes met the curviness target. Try lowering Min Curviness.');
+      } else {
+        setError('No loop routes found. Try a larger radius or longer target distance.');
+      }
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
-      setLoading(false);
-      setStatus('');
+      if (searchAbortRef.current === abortController) {
+        searchAbortRef.current = null;
+        setLoading(false);
+        setStatus('');
+      }
     }
   }
 
@@ -169,7 +186,6 @@ export default function App() {
           selectedRoute={selectedRoute}
           onRouteClick={setSelectedRoute}
           center={userCenter}
-          favorites={favorites}
           searchPin={searchCenter || userCenter || MASON_OH}
           onPinMove={setSearchCenter}
           flyTarget={flyTarget}

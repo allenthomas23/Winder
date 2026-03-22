@@ -33,31 +33,59 @@ function distanceMiles(lat1, lon1, lat2, lon2) {
 export function calcCurviness(coords) {
   if (!coords || coords.length < 3) return 1;
 
-  let totalBearingChange = 0;
   let totalLength = 0;
+  const segments = [];
 
   for (let i = 1; i < coords.length; i++) {
     const [lat1, lon1] = coords[i - 1];
     const [lat2, lon2] = coords[i];
-    totalLength += distanceMiles(lat1, lon1, lat2, lon2);
+    const length = distanceMiles(lat1, lon1, lat2, lon2);
+    totalLength += length;
+    segments.push({
+      bearing: bearing(lat1, lon1, lat2, lon2),
+      length,
+    });
   }
 
-  for (let i = 1; i < coords.length - 1; i++) {
-    const [lat0, lon0] = coords[i - 1];
-    const [lat1, lon1] = coords[i];
-    const [lat2, lon2] = coords[i + 1];
-    const b1 = bearing(lat0, lon0, lat1, lon1);
-    const b2 = bearing(lat1, lon1, lat2, lon2);
-    let diff = Math.abs(b2 - b1);
+  let sustainedCurveScore = 0;
+  let wigglePenalty = 0;
+  let shortSegmentMiles = 0;
+  let prevSignedDiff = 0;
+  let runLength = 0;
+
+  for (let i = 1; i < segments.length; i++) {
+    const prev = segments[i - 1];
+    const next = segments[i];
+    let diff = next.bearing - prev.bearing;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+    const signedDiff = diff;
+    diff = Math.abs(signedDiff);
     if (diff > 180) diff = 360 - diff;
-    totalBearingChange += diff;
+
+    const transitionLength = prev.length + next.length;
+    if (prev.length < 0.05 || next.length < 0.05) shortSegmentMiles += transitionLength / 2;
+
+    if (Math.abs(signedDiff) >= 4) {
+      const sameDirection = prevSignedDiff !== 0 && Math.sign(prevSignedDiff) === Math.sign(signedDiff);
+      runLength = sameDirection ? runLength + 1 : 1;
+      const sustainedBoost = 1 + Math.min(1.5, runLength * 0.35);
+      sustainedCurveScore += diff * sustainedBoost * Math.max(transitionLength, 0.03);
+
+      if (!sameDirection && prevSignedDiff !== 0) {
+        wigglePenalty += Math.min(diff, Math.abs(prevSignedDiff)) * 1.1;
+      }
+
+      prevSignedDiff = signedDiff;
+    }
   }
 
   if (totalLength < 0.01) return 1;
 
-  const degreesPerMile = totalBearingChange / totalLength;
-  // Normalize: 0–50 deg/mi → 1, 50–500 deg/mi → 1–10, 500+ → 10
-  const raw = Math.log1p(degreesPerMile) / Math.log1p(500);
+  const effectiveLength = Math.max(totalLength - shortSegmentMiles * 0.5, totalLength * 0.35);
+  const sustainedPerMile = Math.max(0, sustainedCurveScore - wigglePenalty) / effectiveLength;
+  const shortPenalty = Math.min(0.45, shortSegmentMiles / Math.max(totalLength, 0.01));
+  const raw = Math.log1p(sustainedPerMile) / Math.log1p(220) - shortPenalty;
   return Math.max(1, Math.min(10, Math.round(raw * 10)));
 }
 

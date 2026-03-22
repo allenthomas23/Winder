@@ -1,4 +1,7 @@
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
 
 function buildQuery(lat, lon, radiusMeters, roadTypes) {
   const typeFilters = roadTypes
@@ -33,6 +36,7 @@ export function parseGraphData(data) {
         name: tags.name || null,
         highway: tags.highway || 'unknown',
         speedLimit,
+        oneway: parseOneway(tags.oneway),
       });
     }
   }
@@ -49,18 +53,35 @@ function parseSpeedLimit(maxspeed) {
   return n;
 }
 
-export async function fetchRoadGraph({ lat, lon, radiusMiles, roadTypes }) {
+function parseOneway(oneway) {
+  if (!oneway) return false;
+  const value = String(oneway).trim().toLowerCase();
+  if (['yes', '1', 'true'].includes(value)) return true;
+  if (value === '-1') return -1;
+  return false;
+}
+
+export async function fetchRoadGraph({ lat, lon, radiusMiles, roadTypes, signal }) {
   const radiusMeters = Math.round(radiusMiles * 1609.34);
   const query = buildQuery(lat, lon, radiusMeters, roadTypes);
+  const body = `data=${encodeURIComponent(query)}`;
 
-  const response = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-
-  if (!response.ok) throw new Error(`Overpass API error: ${response.status}`);
-
-  const data = await response.json();
-  return parseGraphData(data);
+  let lastError;
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal,
+      });
+      if (!response.ok) throw new Error(`Overpass API error: ${response.status}`);
+      const data = await response.json();
+      return parseGraphData(data);
+    } catch (err) {
+      if (err.name === 'AbortError') throw err;
+      lastError = err;
+    }
+  }
+  throw lastError;
 }

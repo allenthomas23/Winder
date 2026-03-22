@@ -213,6 +213,13 @@
   margin-top: 0.25rem;
 }
 
+.filter-warning {
+  font-size: 0.8rem;
+  color: #f2cc60;
+  text-align: center;
+  margin-top: 0.35rem;
+}
+
 @media (max-width: 640px) {
   .filter-panel {
     width: 100%;
