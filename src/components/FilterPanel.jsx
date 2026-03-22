@@ -1,17 +1,74 @@
 import { useState } from 'react';
+import LocationSearch from './LocationSearch';
 import './FilterPanel.css';
 
-const ROAD_TYPES = ['secondary', 'tertiary', 'unclassified', 'residential'];
+const ROAD_TYPES = ['primary', 'secondary', 'tertiary', 'unclassified', 'residential'];
 
 const SPEED_OPTIONS = [
-  { label: 'Any speed', value: 999 },
-  { label: '≤ 25 mph', value: 25 },
-  { label: '≤ 35 mph', value: 35 },
-  { label: '≤ 45 mph', value: 45 },
-  { label: '≤ 55 mph', value: 55 },
+  { label: 'Any speed', value: 0 },
+  { label: '≥25 mph', value: 25 },
+  { label: '≥35 mph', value: 35 },
+  { label: '≥45 mph', value: 45 },
+  { label: '≥55 mph', value: 55 },
 ];
 
-export default function FilterPanel({ filters, onChange, onSearch, loading, resultCount }) {
+function SliderField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix = '',
+  onChange,
+  minLabel,
+  maxLabel,
+}) {
+  const normalizedValue = Number.isFinite(value) ? Math.max(min, value) : min;
+  const sliderMax = Math.max(max, normalizedValue);
+  const displayMaxLabel = sliderMax > max ? `${sliderMax}${suffix}` : maxLabel;
+
+  function handleNumberChange(event) {
+    const next = event.target.value;
+    if (next === '') {
+      onChange(min);
+      return;
+    }
+
+    onChange(Math.max(min, Number(next)));
+  }
+
+  return (
+    <>
+      <label className="filter-label">
+        <span>{label}</span>
+        <span className="filter-value-row">
+          <span className="filter-value">{normalizedValue}{suffix}</span>
+          <input
+            type="number"
+            min={min}
+            max={sliderMax}
+            step={step}
+            value={normalizedValue}
+            onChange={handleNumberChange}
+            className="value-input"
+          />
+        </span>
+      </label>
+      <input
+        type="range"
+        min={min}
+        max={sliderMax}
+        step={step}
+        value={normalizedValue}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="slider"
+      />
+      <div className="slider-ticks"><span>{minLabel}</span><span>{displayMaxLabel}</span></div>
+    </>
+  );
+}
+
+export default function FilterPanel({ filters, onChange, onSearch, loading, routeCount, status, onLocationSelect }) {
   const [collapsed, setCollapsed] = useState(false);
 
   function update(key, value) {
@@ -30,60 +87,65 @@ export default function FilterPanel({ filters, onChange, onSearch, loading, resu
     <aside className={`filter-panel ${collapsed ? 'collapsed' : ''}`}>
       <div className="panel-header">
         <span className="panel-title">Filters</span>
-        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} title="Toggle panel">
+        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)}>
           {collapsed ? '▶' : '◀'}
         </button>
       </div>
 
       {!collapsed && (
         <div className="panel-body">
-          <label className="filter-label">
-            Min curviness
-            <span className="filter-value">{filters.minCurviness}</span>
-          </label>
-          <input
-            type="range" min="1" max="10" step="1"
+          <LocationSearch onSelect={onLocationSelect} />
+          <SliderField
+            label="Route length (loop)"
+            value={filters.targetDistMiles}
+            min={10}
+            max={150}
+            step={5}
+            suffix=" mi"
+            minLabel="10 mi"
+            maxLabel="150 mi"
+            onChange={(value) => update('targetDistMiles', value)}
+          />
+
+          <SliderField
+            label="Min curviness"
             value={filters.minCurviness}
-            onChange={(e) => update('minCurviness', Number(e.target.value))}
-            className="slider"
+            min={1}
+            max={10}
+            step={1}
+            minLabel="Mild"
+            maxLabel="Intense"
+            onChange={(value) => update('minCurviness', value)}
           />
-          <div className="slider-ticks">
-            <span>Mild</span><span>Intense</span>
-          </div>
 
-          <label className="filter-label">
-            Search radius
-            <span className="filter-value">{filters.radiusMiles} mi</span>
-          </label>
-          <input
-            type="range" min="5" max="50" step="5"
+          <SliderField
+            label="Search radius"
             value={filters.radiusMiles}
-            onChange={(e) => update('radiusMiles', Number(e.target.value))}
-            className="slider"
+            min={5}
+            max={60}
+            step={5}
+            suffix=" mi"
+            minLabel="5 mi"
+            maxLabel="60 mi"
+            onChange={(value) => update('radiusMiles', value)}
           />
-          <div className="slider-ticks">
-            <span>5 mi</span><span>50 mi</span>
-          </div>
 
-          <label className="filter-label">
-            Min road length
-            <span className="filter-value">{filters.minLengthMiles.toFixed(1)} mi</span>
-          </label>
-          <input
-            type="range" min="0.1" max="5" step="0.1"
-            value={filters.minLengthMiles}
-            onChange={(e) => update('minLengthMiles', Number(e.target.value))}
-            className="slider"
+          <SliderField
+            label="Routes to generate"
+            value={filters.routesToGenerate}
+            min={1}
+            max={8}
+            step={1}
+            minLabel="1"
+            maxLabel="8"
+            onChange={(value) => update('routesToGenerate', value)}
           />
-          <div className="slider-ticks">
-            <span>0.1 mi</span><span>5 mi</span>
-          </div>
 
-          <label className="filter-label">Max speed limit</label>
+          <label className="filter-label">Min speed limit</label>
           <select
             className="select"
-            value={filters.maxSpeedLimit}
-            onChange={(e) => update('maxSpeedLimit', Number(e.target.value))}
+            value={filters.minSpeedLimit}
+            onChange={(e) => update('minSpeedLimit', Number(e.target.value))}
           >
             {SPEED_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -110,17 +172,17 @@ export default function FilterPanel({ filters, onChange, onSearch, loading, resu
             disabled={loading || filters.roadTypes.length === 0}
           >
             {loading ? (
-              <><span className="spinner" /> Searching...</>
+              <><span className="spinner" /> {status || 'Working...'}</>
             ) : (
-              '〰 Find Winding Roads'
+              '〰 Find Loop Courses'
             )}
           </button>
 
-          {resultCount !== null && !loading && (
+          {routeCount !== null && !loading && (
             <p className="result-count">
-              {resultCount === 0
-                ? 'No roads found. Try adjusting filters.'
-                : `${resultCount} road${resultCount !== 1 ? 's' : ''} found`}
+              {routeCount === 0
+                ? 'No routes found. Try adjusting filters.'
+                : `${routeCount} route${routeCount !== 1 ? 's' : ''} generated`}
             </p>
           )}
         </div>

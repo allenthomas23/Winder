@@ -35,3 +35,23 @@
   font-size: 0.82rem;
   color: #8b949e;
 }
+
+/* Draggable search center pin */
+.search-pin-icon {
+  background: none;
+  border: none;
+}
+
+.search-pin-dot {
+  width: 20px;
+  height: 20px;
+  background: #ff6b35;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+}
+
+.search-pin-dot:active {
+  cursor: grabbing;
+}

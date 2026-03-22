@@ -1,73 +1,123 @@
 import { useState, useEffect } from 'react';
 import Map from './components/Map';
 import FilterPanel from './components/FilterPanel';
-import RoadList from './components/RoadList';
-import { fetchRoads } from './utils/overpass';
+import RouteList from './components/RouteList';
+import FavoritesList from './components/FavoritesList';
+import { fetchRoadGraph } from './utils/overpass';
+import { buildGraph, findNearestNode } from './utils/graph';
+import { findLoops } from './utils/routing';
+import { exportGpx } from './utils/gpx';
+import { useFavorites } from './utils/useFavorites';
 import './App.css';
 
+// Mason, Ohio
+const MASON_OH = [39.3592, -84.3099];
+
 const DEFAULT_FILTERS = {
-  minCurviness: 4,
+  targetDistMiles: 40,
+  minCurviness: 3,
   radiusMiles: 20,
-  maxSpeedLimit: 999,
-  roadTypes: ['secondary', 'tertiary', 'unclassified', 'residential'],
-  minLengthMiles: 0.5,
+  minSpeedLimit: 0,
+  roadTypes: ['primary', 'secondary', 'tertiary', 'unclassified'],
+  routesToGenerate: 5,
 };
 
 export default function App() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [roads, setRoads] = useState([]);
-  const [filteredRoads, setFilteredRoads] = useState([]);
-  const [selectedRoad, setSelectedRoad] = useState(null);
+  const [routes, setRoutes] = useState([]);
+  const [selectedRoute, setSelectedRoute] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
   const [error, setError] = useState(null);
   const [userCenter, setUserCenter] = useState(null);
-  const [resultCount, setResultCount] = useState(null);
+  const [routeCount, setRouteCount] = useState(null);
+
+  // Search center: starts at GPS location, overridden by geocode search or pin drag
+  const [searchCenter, setSearchCenter] = useState(null);
+  // flyTarget: set when user picks a geocode result so map animates there
+  const [flyTarget, setFlyTarget] = useState(null);
+
+  const { favorites, addFavorite, removeFavorite, renameFavorite } = useFavorites();
+
+  const savedRouteIds = new Set(favorites.map((f) => f.sourceId).filter(Boolean));
 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserCenter([pos.coords.latitude, pos.coords.longitude]),
-        () => setUserCenter([36.1627, -86.7816])
+        (pos) => {
+          const coords = [pos.coords.latitude, pos.coords.longitude];
+          setUserCenter(coords);
+          setSearchCenter((prev) => prev ?? coords); // only set if not already overridden
+        },
+        () => {
+          setUserCenter(MASON_OH);
+          setSearchCenter((prev) => prev ?? MASON_OH);
+        }
       );
     } else {
-      setUserCenter([36.1627, -86.7816]);
+      setUserCenter(MASON_OH);
+      setSearchCenter((prev) => prev ?? MASON_OH);
     }
   }, []);
 
-  useEffect(() => {
-    const filtered = roads.filter(
-      (r) =>
-        r.curviness >= filters.minCurviness &&
-        r.length >= filters.minLengthMiles &&
-        (filters.maxSpeedLimit === 999 ||
-          r.speedLimit === null ||
-          r.speedLimit <= filters.maxSpeedLimit) &&
-        filters.roadTypes.includes(r.highway)
-    );
-    const sorted = [...filtered].sort((a, b) => b.curviness - a.curviness);
-    setFilteredRoads(sorted);
-    setResultCount(sorted.length);
-  }, [roads, filters]);
+  function handleLocationSelect(coords, label) {
+    setSearchCenter(coords);
+    setFlyTarget(coords);
+  }
 
   async function handleSearch() {
-    if (!userCenter) return;
+    const center = searchCenter || userCenter || MASON_OH;
     setLoading(true);
     setError(null);
-    setSelectedRoad(null);
-    setRoads([]);
+    setSelectedRoute(null);
+    setRoutes([]);
+    setRouteCount(null);
+
     try {
-      const results = await fetchRoads({
-        lat: userCenter[0],
-        lon: userCenter[1],
+      setStatus('Fetching roads...');
+      const { ways, nodeCoords } = await fetchRoadGraph({
+        lat: center[0],
+        lon: center[1],
         radiusMiles: filters.radiusMiles,
         roadTypes: filters.roadTypes,
       });
-      setRoads(results);
+
+      setStatus('Building road graph...');
+      const graph = buildGraph(ways, nodeCoords, { minSpeedLimit: filters.minSpeedLimit });
+
+      if (graph.size === 0) {
+        setError('No roads found in this area. Try increasing the search radius.');
+        return;
+      }
+
+      setStatus('Calculating loop routes...');
+      const startNode = findNearestNode(graph, center[0], center[1]);
+
+      const found = findLoops(
+        graph,
+        startNode,
+        filters.targetDistMiles,
+        filters.minCurviness,
+        filters.routesToGenerate
+      );
+
+      setRoutes(found);
+      setRouteCount(found.length);
+      if (found.length > 0) setSelectedRoute(found[0]);
     } catch (err) {
-      setError(err.message || 'Failed to fetch roads. Try again.');
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+      setStatus('');
     }
+  }
+
+  function handleSave(route) {
+    addFavorite(route, `Loop ${route.totalDistance.toFixed(1)} mi`);
+  }
+
+  function handleExport(route) {
+    exportGpx(route, `Winder_Loop_${route.totalDistance.toFixed(1)}mi`);
   }
 
   return (
@@ -88,20 +138,38 @@ export default function App() {
             onChange={setFilters}
             onSearch={handleSearch}
             loading={loading}
-            resultCount={resultCount}
+            routeCount={routeCount}
+            status={status}
+            onLocationSelect={handleLocationSelect}
           />
-          <RoadList
-            roads={filteredRoads}
-            selectedId={selectedRoad?.id}
-            onSelect={setSelectedRoad}
-          />
+          <div className="sidebar-lists">
+            <RouteList
+              routes={routes}
+              selectedId={selectedRoute?.id}
+              onSelect={setSelectedRoute}
+              onSave={handleSave}
+              onExport={handleExport}
+              savedIds={savedRouteIds}
+            />
+            <FavoritesList
+              favorites={favorites}
+              selectedId={selectedRoute?.id}
+              onSelect={setSelectedRoute}
+              onRename={renameFavorite}
+              onRemove={removeFavorite}
+            />
+          </div>
         </div>
 
         <Map
-          roads={filteredRoads}
-          selectedRoad={selectedRoad}
-          onRoadClick={setSelectedRoad}
+          routes={routes}
+          selectedRoute={selectedRoute}
+          onRouteClick={setSelectedRoute}
           center={userCenter}
+          favorites={favorites}
+          searchPin={searchCenter || userCenter || MASON_OH}
+          onPinMove={setSearchCenter}
+          flyTarget={flyTarget}
         />
       </div>
     </div>

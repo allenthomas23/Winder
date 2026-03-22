@@ -1,0 +1,115 @@
+.favorites-list {
+  margin-top: 0.75rem;
+  border-top: 1px solid #21262d;
+  padding-top: 0.75rem;
+}
+
+.favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  padding: 0 0.1rem;
+}
+
+.favorites-count {
+  background: #21262d;
+  color: #8b949e;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 0.72rem;
+}
+
+.fav-item {
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 7px;
+  padding: 0.5rem 0.65rem;
+  cursor: pointer;
+  margin-bottom: 0.4rem;
+  transition: border-color 0.15s;
+}
+
+.fav-item:hover {
+  border-color: #ffd700;
+}
+
+.fav-item.selected {
+  border-color: #ffd700;
+  background: #1a1700;
+}
+
+.fav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0.2rem;
+}
+
+.fav-name {
+  font-size: 0.82rem;
+  color: #e6edf3;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.fav-rename-input {
+  flex: 1;
+  min-width: 0;
+  background: #161b22;
+  border: 1px solid #58a6ff;
+  border-radius: 4px;
+  color: #e6edf3;
+  font-size: 0.82rem;
+  padding: 1px 5px;
+  outline: none;
+}
+
+.fav-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 0.78rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.fav-btn:hover {
+  color: #e6edf3;
+  background: #21262d;
+}
+
+.fav-btn.delete:hover {
+  color: #f85149;
+  background: #1e0a0a;
+}
+
+.fav-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.fav-detail {
+  font-size: 0.72rem;
+  color: #8b949e;
+}

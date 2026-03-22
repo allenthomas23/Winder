@@ -79,6 +79,18 @@
   background: #161b22;
 }
 
+/* Routes + Favorites — always visible below the filter panel */
+.sidebar-lists {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.sidebar-lists::-webkit-scrollbar { width: 5px; }
+.sidebar-lists::-webkit-scrollbar-track { background: #0d1117; }
+.sidebar-lists::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
 @media (max-width: 640px) {
   .app-body {
     flex-direction: column;

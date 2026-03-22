@@ -1,0 +1,28 @@
+.route-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #21262d;
+  margin-bottom: 0.25rem;
+}
+
+.route-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+
+.route-list-count {
+  color: #ff6b35;
+}
+
+.route-list-body {
+  padding-top: 0.5rem;
+}

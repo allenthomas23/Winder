@@ -1,18 +1,16 @@
 .filter-panel {
-  width: 280px;
-  min-width: 280px;
   background: #161b22;
-  border-right: 1px solid #30363d;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  transition: width 0.25s ease, min-width 0.25s ease;
+  /* Cap at 58% of sidebar height so routes/favorites always have room below */
+  max-height: 58%;
+  flex-shrink: 0;
   z-index: 100;
 }
 
-.filter-panel.collapsed {
-  width: 40px;
-  min-width: 40px;
+/* collapsed: just the header strip — no width change so button stays visible */
+.filter-panel.collapsed .panel-body {
+  display: none;
 }
 
 .panel-header {
@@ -63,6 +61,10 @@
   gap: 0.5rem;
 }
 
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
 .filter-label {
   display: flex;
   justify-content: space-between;
@@ -75,6 +77,36 @@
 .filter-value {
   color: #ff6b35;
   font-weight: 700;
+}
+
+.filter-value-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.value-input {
+  width: 56px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  text-align: right;
+  outline: none;
+  appearance: none;
+  -moz-appearance: textfield;
+}
+
+.value-input::-webkit-outer-spin-button,
+.value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.value-input:focus {
+  border-color: #58a6ff;
 }
 
 .slider {

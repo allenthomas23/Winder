@@ -1,0 +1,103 @@
+.loc-search {
+  position: relative;
+  margin-bottom: 0.25rem;
+}
+
+.loc-input-wrap {
+  display: flex;
+  align-items: center;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 7px;
+  padding: 0 0.5rem;
+  gap: 0.4rem;
+  transition: border-color 0.15s;
+}
+
+.loc-input-wrap:focus-within {
+  border-color: #58a6ff;
+}
+
+.loc-icon {
+  color: #8b949e;
+  font-size: 1rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.loc-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #e6edf3;
+  font-size: 0.82rem;
+  padding: 0.45rem 0;
+}
+
+.loc-input::placeholder {
+  color: #484f58;
+}
+
+.loc-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #30363d;
+  border-top-color: #58a6ff;
+  border-radius: 50%;
+  animation: loc-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes loc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.loc-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 7px;
+  list-style: none;
+  z-index: 500;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.loc-result {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-bottom: 1px solid #21262d;
+  transition: background 0.1s;
+}
+
+.loc-result:last-child {
+  border-bottom: none;
+}
+
+.loc-result:hover {
+  background: #21262d;
+}
+
+.loc-result-name {
+  font-size: 0.82rem;
+  color: #e6edf3;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loc-result-detail {
+  font-size: 0.72rem;
+  color: #8b949e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
