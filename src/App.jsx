@@ -16,7 +16,6 @@ const MASON_OH = [39.3592, -84.3099];
 
 const DEFAULT_FILTERS = {
   targetDistMiles: 40,
-  minCurviness: 1,
   radiusMiles: 20,
   minSpeedLimit: 0,
   roadTypes: ['primary', 'secondary', 'tertiary', 'unclassified'],
@@ -105,7 +104,6 @@ export default function App() {
         graph,
         startNode,
         filters.targetDistMiles,
-        filters.minCurviness,
         filters.routesToGenerate
       );
 
@@ -113,8 +111,6 @@ export default function App() {
       setRouteCount(found.length);
       if (found.length > 0) {
         setSelectedRoute(found[0]);
-      } else if (filters.minCurviness > 5) {
-        setError('No routes met the curviness target. Try lowering Min Curviness.');
       } else {
         setError('No loop routes found. Try a larger radius or longer target distance.');
       }

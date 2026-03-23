@@ -113,17 +113,6 @@ export default function FilterPanel({ filters, onChange, onSearch, loading, rout
           />
 
           <SliderField
-            label="Min curviness"
-            value={filters.minCurviness}
-            min={1}
-            max={10}
-            step={1}
-            minLabel="Mild"
-            maxLabel="Intense"
-            onChange={(value) => update('minCurviness', value)}
-          />
-
-          <SliderField
             label="Search radius"
             value={filters.radiusMiles}
             min={5}

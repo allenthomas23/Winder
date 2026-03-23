@@ -178,7 +178,7 @@ function scoreRoute(graph, path) {
   };
 }
 
-export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 5) {
+export function findLoops(graph, startNodeId, targetDist, count = 5) {
   if (!graph.get(startNodeId)) return [];
 
   // If the chosen start node is in a tiny component, stop early so the caller
@@ -195,7 +195,6 @@ export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 
     const route = buildLoop(graph, startNodeId, targetDist, seed);
     if (!route) continue;
     if (route.totalDistance < minDist) continue;
-    if (route.avgCurviness < minCurviness) continue;
     // Reject routes where more than half the mileage is below the speed limit.
     // This allows slow connector roads but keeps the majority on qualifying roads.
     if (route.belowLimitFraction > 0.5) continue;
@@ -208,12 +207,6 @@ export function findLoops(graph, startNodeId, targetDist, minCurviness, count = 
     if (!isDupe) routes.push(route);
   }
 
-  // Sort by combined score: curviness + closeness to target distance
-  return routes
-    .filter((route) => route.avgCurviness >= minCurviness)
-    .sort((a, b) => {
-    const scoreA = a.avgCurviness * 2 + Math.max(0, 1 - Math.abs(a.totalDistance - targetDist) / targetDist);
-    const scoreB = b.avgCurviness * 2 + Math.max(0, 1 - Math.abs(b.totalDistance - targetDist) / targetDist);
-    return scoreB - scoreA;
-    });
+  // Sort most curvy first
+  return routes.sort((a, b) => b.avgCurviness - a.avgCurviness);
 }
